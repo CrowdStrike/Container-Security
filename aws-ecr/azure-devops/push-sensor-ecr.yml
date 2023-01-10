@@ -1,0 +1,70 @@
+# Pipeline to Pull Latest Falcon Container Sensor and Push to Your AWS ECR Registry
+
+# Required Variables
+# FALCON_SENSOR_TYPE
+# FALCON_CID
+# FALCON_CLIENT_ID
+# FALCON_CLIENT_SECRET
+# FALCON_CLOUD_API
+# FALCON_CLOUD_REGION
+# AWS_ACCOUNT_ID
+# AWS_REGION
+# AWS_ACCESS_KEY_ID
+# AWS_SECRET_ACCESS_KEY
+# AWS_ECR_REPOSITORY
+
+
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- task: DockerInstaller@0
+  inputs:
+    dockerVersion: '17.09.0-ce'
+  displayName: 'Install Docker'
+
+- bash: |
+    export FALCON_API_BEARER_TOKEN=$(curl \
+    --header "Content-Type: application/x-www-form-urlencoded" \
+    --data "client_id=$(FALCON_CLIENT_ID)&client_secret=$(FALCON_CLIENT_SECRET)" \
+    --request POST \
+    --url "https://$(FALCON_CLOUD_API)/oauth2/token" | \
+    jq -r '.access_token')
+    echo "##vso[task.setvariable variable=FALCON_API_BEARER_TOKEN]$FALCON_API_BEARER_TOKEN"
+  displayName: 'Get Falcon API Bearer Token'
+
+- bash: |
+    export FALCON_ART_PASSWORD=$(curl --silent -X GET -H "authorization: Bearer $(FALCON_API_BEARER_TOKEN)" \
+    https://$(FALCON_CLOUD_API)/container-security/entities/image-registry-credentials/v1 | \
+    jq -r '.resources[].token')
+    export FALCON_ART_USERNAME="fc-$(echo $(FALCON_CID) | awk '{ print tolower($0) }' | cut -d'-' -f1)"
+    echo "##vso[task.setvariable variable=FALCON_ART_PASSWORD]$FALCON_ART_PASSWORD"
+    echo "##vso[task.setvariable variable=FALCON_ART_USERNAME]$FALCON_ART_USERNAME"
+  displayName: 'Get Falcon Registry Credentials'
+
+- bash: |
+    export REGISTRYBEARER=$(curl -X GET -s -u "$(FALCON_ART_USERNAME):$(FALCON_ART_PASSWORD)" "https://registry.crowdstrike.com/v2/token?=${FALCON_ART_USERNAME}&scope=repository:$SENSORTYPE/$(FALCON_CLOUD_REGION)/release/falcon-sensor:pull&service=registry.crowdstrike.com" | jq -r '.token')
+    export FALCON_IMAGE_TAG=$(curl -X GET -s -H "authorization: Bearer $REGISTRYBEARER" "https://registry.crowdstrike.com/v2/$(FALCON_SENSOR_TYPE)/$(FALCON_CLOUD_REGION)/release/falcon-sensor/tags/list" | jq -r '.tags[-1]')
+    export FALCON_IMAGE_REPO="registry.crowdstrike.com/$(FALCON_SENSOR_TYPE)/$(FALCON_CLOUD_REGION)/release/falcon-sensor"
+    echo "Latest Sensor is $FALCON_IMAGE_TAG"
+    echo "##vso[task.setvariable variable=REGISTRYBEARER]$REGISTRYBEARER"
+    echo "##vso[task.setvariable variable=FALCON_IMAGE_REPO]$FALCON_IMAGE_REPO"
+    echo "##vso[task.setvariable variable=FALCON_IMAGE_TAG]$FALCON_IMAGE_TAG"
+  displayName: 'Get Latest Sensor Version'
+
+- bash: |
+    echo $(FALCON_ART_PASSWORD) | sudo docker login -u $(FALCON_ART_USERNAME) --password-stdin registry.crowdstrike.com
+    sudo docker pull $(FALCON_IMAGE_REPO):$(FALCON_IMAGE_TAG)
+  displayName: 'Pull Container Sensor Image'
+
+- bash: |
+    aws ecr get-login-password --region $(AWS_REGION) | sudo docker login --username AWS --password-stdin $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
+    sudo docker tag $(FALCON_IMAGE_REPO):$(FALCON_IMAGE_TAG) $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(AWS_ECR_REPOSITORY):$FALCON_IMAGE_TAG
+    sudo docker push $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(AWS_ECR_REPOSITORY):$FALCON_IMAGE_TAG
+  env:
+    AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
+    AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
+  displayName: 'Push Container Sensor Image to ECR'
