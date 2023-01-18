@@ -4,6 +4,6 @@ metadata:
   name: falcon-node-sensor
 spec:
   node:
-    image_override: [AWS_ECR_REPOSITORY]
+    image_override: <AWS_ECR_REPOSITORY>
   falcon: 
-    cid: [FALCON_CID]
+    cid: <FALCON_CID>

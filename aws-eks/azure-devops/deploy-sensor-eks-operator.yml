@@ -1,0 +1,85 @@
+# Pipeline to Pull Latest Falcon Container Sensor and Push to Your AWS ECR Registry
+
+# Required Variables
+# FALCON_SENSOR_TYPE = falcon-sensor or falcon-container
+# FALCON_SENSOR_IMAGE_LOCATION = default or ECR
+# AWS_REGION
+# AWS_ACCESS_KEY_ID
+# AWS_SECRET_ACCESS_KEY
+# AWS_EKS_CLUSTER_NAME
+
+# Optional Variables
+# FALCON_CID
+# FALCON_CLIENT_ID
+# FALCON_CLIENT_SECRET
+# AWS_ECR_REPOSITORY
+
+
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+
+# Install prerequisites
+
+- task: KubectlInstaller@0
+  inputs:
+    kubectlVersion: 'latest'
+  displayName: 'Install kubectl'
+
+# Download and setup appropriate Sensor CRD file per variable selections
+
+- bash: |
+    wget https://raw.githubusercontent.com/CrowdStrike/falcon-operator/main/deploy/falcon-operator.yaml -P /tmp/    
+  displayName: 'Download kubeconfig and Operator Files'
+
+- bash: |
+    wget -O /tmp/sensor-CRD.yml https://raw.githubusercontent.com/ryanjpayne/cs-container-security/azure-pipelines/aws-eks/crd/node-sensor-CRD.yml
+    sed -i "s/<FALCON_CLIENT_ID>/$(FALCON_CLIENT_ID)/" /tmp/sensor-CRD.yml
+    sed -i "s/<FALCON_CLIENT_SECRET>/$(FALCON_CLIENT_SECRET)/" /tmp/sensor-CRD.yml
+  displayName: 'Setup Default Falcon Node Sensor CRD File'
+  condition: and(eq(variables.FALCON_SENSOR_TYPE, 'falcon-sensor'), eq(variables.FALCON_SENSOR_IMAGE_LOCATION, 'default'))
+
+- bash: |
+    wget -O /tmp/sensor-CRD.yml https://raw.githubusercontent.com/ryanjpayne/cs-container-security/azure-pipelines/aws-eks/crd/node-sensor-ECR-CRD.yml
+    sed -i "s/<FALCON_CID>/$(FALCON_CID)/" /tmp/sensor-CRD.yml
+    sed -i "s/<AWS_ECR_REPOSITORY>/$(AWS_ECR_REPOSITORY)/" /tmp/sensor-CRD.yml
+  displayName: 'Setup ECR Falcon Node Sensor CRD File'
+  condition: and(eq(variables.FALCON_SENSOR_TYPE, 'falcon-sensor'), eq(variables.FALCON_SENSOR_IMAGE_LOCATION, 'ECR'))
+
+- bash: |
+    wget -O /tmp/sensor-CRD.yml https://raw.githubusercontent.com/ryanjpayne/cs-container-security/azure-pipelines/aws-eks/crd/container-sensor-CRD.yml
+    sed -i "s/<FALCON_CLIENT_ID>/$(FALCON_CLIENT_ID)/" /tmp/sensor-CRD.yml
+    sed -i "s/<FALCON_CLIENT_SECRET>/$(FALCON_CLIENT_SECRET)/" /tmp/sensor-CRD.yml
+  displayName: 'Setup Default Falcon Container Sensor CRD File'
+  condition: and(eq(variables.FALCON_SENSOR_TYPE, 'falcon-container'), eq(variables.FALCON_SENSOR_IMAGE_LOCATION, 'default'))
+  
+- bash: |
+    wget -O /tmp/sensor-CRD.yml https://raw.githubusercontent.com/ryanjpayne/cs-container-security/azure-pipelines/aws-eks/crd/container-sensor-ECR-CRD.yml
+    sed -i "s/<FALCON_CLIENT_ID>/$(FALCON_CLIENT_ID)/" /tmp/sensor-CRD.yml
+    sed -i "s/<FALCON_CLIENT_SECRET>/$(FALCON_CLIENT_SECRET)/" /tmp/sensor-CRD.yml
+  displayName: 'Setup ECR Falcon Container Sensor CRD File'
+  condition: and(eq(variables.FALCON_SENSOR_TYPE, 'falcon-container'), eq(variables.FALCON_SENSOR_IMAGE_LOCATION, 'ECR'))
+
+- bash: |
+    cat /tmp/sensor-CRD.yml
+  displayName: 'Check Sensor CRD'
+
+# Apply Kubernetes Resources
+
+- task: Kubernetes@1
+  displayName: 'Deploy Falcon Operator'
+  inputs:
+    kubernetesServiceEndpoint: crowdstrike-eks
+    command: apply
+    arguments: -f /tmp/falcon-operator.yaml
+
+- task: Kubernetes@1
+  displayName: kubectl apply sensor CRD
+  inputs:
+    kubernetesServiceEndpoint: crowdstrike-eks
+    command: apply
+    arguments: -f /tmp/sensor-CRD.yml
