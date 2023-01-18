@@ -1,5 +1,7 @@
 # Deploy Falcon to ECS Fargate
 CrowdStrike with Azure DevOps and AWS ECS
+
+> **Note**: This is an open source project, not a CrowdStrike product. As such, it carries no formal support, expressed or implied.
   
 ## Introduction
 This document describes a basic approach to integrate Falcon Sensor Deployment on AWS ECS Fargate with an Azure DevOps Pipeline.  While this document uses Azure DevOps pipelines to demonstrate our approach, this approach can be recreated in any other CI/CD tool as the steps will be virtually identical. 

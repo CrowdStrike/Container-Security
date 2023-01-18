@@ -1,6 +1,8 @@
 # Push Latest Falcon Sensor to AWS ECR
 CrowdStrike with Azure DevOps and AWS ECR
 
+> **Note**: This is an open source project, not a CrowdStrike product. As such, it carries no formal support, expressed or implied.
+
 ## Introduction
 
 This pipeline retrieves the latest Falcon Sensor image and pushes to your ECR registry.

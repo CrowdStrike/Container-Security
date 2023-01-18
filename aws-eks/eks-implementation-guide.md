@@ -1,5 +1,7 @@
 # Implementation Guide for CrowdStrike Falcon Container Sensor in AWS EKS+Fargate
 
+> **Note**: This is an open source project, not a CrowdStrike product. As such, it carries no formal support, expressed or implied.
+
 This guide works through creation of new EKS+Fargate cluster, deployment of Falcon Container Sensor, and demonstration of detection capabilities of Falcon Container Workload Protection.
 
 Time needed to follow this guide: 55 minutes.

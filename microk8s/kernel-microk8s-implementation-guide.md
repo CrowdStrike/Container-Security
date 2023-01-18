@@ -1,5 +1,7 @@
 # Implementation Guide for CrowdStrike Falcon Sensor for Linux DaemonSet on Kubernetes cluster using Helm Chart
 
+> **Note**: This is an open source project, not a CrowdStrike product. As such, it carries no formal support, expressed or implied.
+
 This guide works through creation of new Kubernetes cluster, deployment of Falcon Sensor for Linux using Helm Chart, and demonstration of detection capabilities of Falcon Container Workload Protection.
 
 No prior Kubernetes or Falcon knowledge is needed to follow this guide. First sections of this guide focus on creation of Microk8s cluster, these sections may be skipped if you have access to an existing cluster.

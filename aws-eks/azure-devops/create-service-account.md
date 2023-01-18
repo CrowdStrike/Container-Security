@@ -1,5 +1,7 @@
 # How to Create Service Connection for Azure DevOps (ADO) Pipelines to AWS EKS Cluster
 
+> **Note**: This is an open source project, not a CrowdStrike product. As such, it carries no formal support, expressed or implied.
+
 ## Create Service Account
 **After your cluster is created create the service account**
 ```

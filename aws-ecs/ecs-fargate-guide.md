@@ -1,5 +1,7 @@
 # Falcon Container sensor for Linux in an ECS-Fargate cluster
 
+> **Note**: This is an open source project, not a CrowdStrike product. As such, it carries no formal support, expressed or implied.
+
 ## Overview
 The Falcon Container sensor for Linux extends runtime security to container workloads in ECS-Fargate clusters that don’t allow you to deploy the kernel-based Falcon sensor for Linux. The Falcon Container sensor runs in user space with no code running in the kernel of the worker node OS. This allows it to secure containers in tasks in clusters where it isn’t possible to deploy the kernel-based Falcon sensor for Linux on the worker node, as with AWS Fargate where organizations don’t have access to the kernel and where privileged containers are disallowed. The Falcon Container sensor can also secure container workloads on clusters where worker node security is managed separately from application security.
 

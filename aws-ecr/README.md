@@ -1,6 +1,8 @@
 # Push Latest Falcon Sensor to AWS ECR
 CrowdStrike with AWS ECR
 
+> **Note**: This is an open source project, not a CrowdStrike product. As such, it carries no formal support, expressed or implied.
+
 ### Prerequisites
 - JQ: https://stedolan.github.io/jq/
 - AWS CLI: https://aws.amazon.com/cli/
